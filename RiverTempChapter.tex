@@ -322,6 +322,7 @@ This basic approach forms the basis that will be used to estimate the effect of 
 
 
 
+
 \section{Modelling daily felling effects}
 
 Preliminary analysis in Section \ref{sec:chpt4:simple} showed that a linear relationship holds between sites when viewed on a month by month basis (Figure \ref{fig:chptr4:monthlyfits}). The models developed in this section for a felling effect are the same in spirit as the simple example: define a baseline model and a model for a felling effect in which the pre-felling data is given by the baseline state which is then augmented by a felling effect to model the post felling data.
@@ -357,7 +358,11 @@ The intercept and slope terms $\beta_a$ and $\beta_b$ can also be writted in mat
   \bm{y} = \bm{Z}_a \bm{\gamma}_a + \bm{Z}_b \bm{\gamma}_b + \bm{X} \bm{\beta} + \bm{\epsilon}
 \end{equation}
 
+% -------------------------------------------------------------------------
 
+
+
+\subsubsection{Smoother choice}
 
 The seasonal effect can be achieved through the use of a variety of penalties. Possible approaches include the 1st order cyclic random walk GMRF models (CRW1) as described in chapter 2.  While  another is to use a harmonic oscillator penalty (HO). The CRW1 model is based on penalising day to day changes in temperature where there is an explicit link between the last day in the year and the first day in the year.  In terms of derivatives, this model is based on penalising 1st differences, and can be written in terms of a differential operator $\bm{D}$
 
@@ -365,26 +370,120 @@ The seasonal effect can be achieved through the use of a variety of penalties. P
   \bm{D}g = g'(\text{doy})
 \end{equation}
 
-In the discrete time case, the operator $\bm{D}$ is a matrix which computes the differences between each day, and because the 365th day is linked to the 1st day, the last row of $\bm{D}$ computed this difference. The quadratic penalty ($\bm{D}'\bm{D}=\bm{Q}_{crw1}$) is invariant to the additon of a constant term to the functon $g$. In this example $\bm{Q}_{crw1}$ is a $365 \times 365$ penalty matrix with structure
+In the discrete time case, the operator $\bm{D}$ is a matrix which computes the differences between each day, and because the 365th day is linked to the 1st day, the last row of $\bm{D}$ computed this difference. The discrete (cyclic) differential operatior is the $n \times n$ matrix
 \begin{equation}
-\bm{Q}_{crw2} = 
+\bm{D} = 
 \begin{pmatrix} 
-6 & -4 & 1 &  &  & 1 & -4 \\ 
--4 & 6 & -4 & 1 &  &  & 1 \\ 
-1 & -4 & 6 & -4 & 1 &  &  \\ 
- & \ddots & \ddots & \ddots & \ddots & \ddots &  \\ 
- &  & 1 & -4 & 6 & -4 & 1 \\ 
-1 &  &  & 1 & -4 & 6 & -4 \\ 
--4 & 1 &  &  & 1 & -4 & 6 \\ 
+-1 & 1 &  &  &  &  &  \\ 
+ & -1 & 1 &  &  &  &  \\ 
+ &  &  & \ddots & \ddots &  &  \\ 
+ &  &  &  &  & -1 & 1 \\ 
+1 &  &  &  &  &  & -1 \\ 
+\end{pmatrix}
+\end{equation}
+This basic operator can be used to define several cyclic smoothers.  The cyclic 1sy order random walk is given by the quadratic penalty ($\bm{D}'\bm{D}=\bm{Q}_{crw1}$), which is invariant to the additon of a constant term to the functon $g$. 
+\begin{equation}
+\bm{Q}_{crw1} = 
+\begin{pmatrix} 
+2 & -1 &  &  &  &  & -1 \\ 
+-1 & 2 & -1 &  &  &  &  \\ 
+ & -1 & 2 & -1 &  &  &  \\ 
+ &  & \ddots & \ddots & \ddots &  &  \\ 
+ &  &  & -1 & 2 & -1 &  \\ 
+ &  &  &  & -1 & 2 & -1 \\ 
+-1 &  &  &  &  & -1 & 2 \\ 
+\end{pmatrix}
+\end{equation}
+
+The harmonic oscilator on the otherhand, penalises the 1st and 3rd derivatives together forming a penalty that is invariant to the addition of a phase shifted sine wave $a \sin(\omega x + \phi)$.  The appropriate penalty is based on the famous wave equation and is defined through a combination of differences using a linear differential operator $L$
+\begin{equation}
+  \bm{L}g = \bm{D}^{3}g + \omega^2\bm{D}g
+\end{equation}
+where $\omega$ is the period. The quadratic penalty for this is simply ($\bm{L}'\bm{L}=\bm{Q}_{harm}$).
+
+\begin{equation}
+\bm{Q}_{harm} = 
+\begin{pmatrix} 
+20 & -15 & 6 & -1 &  &  &  & -1 & 6 & -15 \\ 
+-15 & 20 & -15 & 6 & -1 &  &  &  & -1 & 6 \\ 
+6 & -15 & 20 & -15 & 6 & -1 &  &  &  & -1 \\ 
+-1 & 6 & -15 & 20 & -15 & 6 & -1 &  &  &  \\ 
+ & \ddots & \ddots & \ddots & \ddots & \ddots & \ddots & \ddots &  &  \\ 
+ &  & -1 & 6 & -15 & 20 & -15 & 6 & -1 &  \\ 
+ &  &  & -1 & 6 & -15 & 20 & -15 & 6 & -1 \\ 
+-1 &  &  &  & -1 & 6 & -15 & 20 & -15 & 6 \\ 
+6 & -1 &  &  &  & -1 & 6 & -15 & 20 & -15 \\ 
+-15 & 6 & -1 &  &  &  & -1 & 6 & -15 & 20 \\ 
 \end{pmatrix}
 \end{equation}
 
 
-The harmonic oscilator on the otherhand, does not link the last and first days of the year.  It works by constructing a penalty that is invariant to the addition of a phase shifted sine wave $a \sin(\omega x + \phi)$.  The appropriate penalty is based on the famous wave equation and is defined through a combination of differences using a linear differential operator $L$
+Both these models require a parameter vector $\bm{\gamma}_a$ with 365 elements - a parameter for each day - which would be penalised by a 365x365 matrix.  For this moderate sized problem, the dimension of the smoothing matrix makes for slow computation.  In order to speed up the fitting process a reduced rank smoother (chapter 2) can be used.  
+
+Reduced rank smoothers provide a means to reduce the number of parameters in a model by reducing the maximum model space.  However, the process involves computing the eigen decomposition of the penalty matrix, which again comes with computational cost.  There is a short cut by noticing the form of the new bases induced by diagonalising the penalty matrix.  Recall from chapter 2, that the \textit{best} parameterisation of a smoother could be achieved by transforming the parameter space so that the smoothing matrix was diagonal.  Wood (2006) called this the \textit{natural parameterisation} for a smoother, and it is appealing becuase the new basis functions contribute independently to the complexity of the fit.  With a diagonal penalty matrix, the smoothing problem becomes almost a ridge regression.
+
+Consider the GMRF smoother for a discrete time process composed of n time points. The basis functions for this model are coded by the identity matrix, each point in the process has a single basis vector, much like the basis vectors $(i, j, k)$ for points in euclidean 3 dimensional space. Following the procedure for reduced rank smoothers, the penalty $g'Qg$ can be written $g'U'VUg$, by replacing $Q$ with its eigen decomposotion, so a transformed model with diagonal penalty matrix $V$ is
 \begin{equation}
-  \bm{L}g = \bm{D}^{3}g + \omega^2\bm{D}g
+  y = Ug + e
 \end{equation}
-where $\omega$ is the period. The quadratic penalty for this is simply ($\bm{L}'\bm{L}=\bm{Q}_{ho}$).
+where $U$ defines the new basis functions.  The form of these basis functions is very insightful and are given in Figure \ref{fig:chptr4:eigenBasis} for the two GMRF smoothers (1st order cyclic random walk and the harmonic occilator random walk).
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{eigendecomp}
+\caption{The first three basis functions of four GMRF models transformed to thier \textit{natural parameterisation}}
+\label{fig:chptr4:eigenBasis}
+\end{figure}
+
+Notice that the basis function of the CRW1, harm are sine and cosine functions, hence the reduced rank models are intimately related to penalised splines based on fourier basis functions. In fact, the first 4 basis functions of the CRW1 penalty results in the first 4 discrete fourier basis functions. The harmonic basis functions are very similar to the CRW1 apart form of the 1st basis function which has a sinusoid form.
+
+To investigate the utility of each approach the following model was fitted to the full time series of data
+\begin{equation}
+  y = a + x + g_a(doy) + \epsilon
+\end{equation}
+with 6 forms for the function $g_a$: 1) CRW1, 2) reduced rank CRW1 with 52 bases, 3) harmonic, 4) reduced rank harmonic with 52 bases, 5) one value for each week, and 6) cyclic cubic regression spline with 52 bases.  52 was chosen to restric the smoothness to to a weekly level. Figure \ref{fig:chptr4:smoothchoice} shows the fitted smoothers.  The results from CRW1, reduced CRw1, harm, and CC are very similar, the factor model is very wiggly as expected, while the reduced harm is also very wiggly.  The edf of the least wiggly models are range between 22 to 27 (Table \ref{tab:chptr4:efd}), with the harmonic models ataining the lowest smoothing parameter and among the lowest GCV.  Interesingly, the reduced harmonic model with 52 basis functions does not find the optimum smoother, but the reduced harmonic smoother with 100 basis functions does.  The lowest GCV actually came from the reduced rank CRW1 model.
+
+% -------------------------------------------------------------------------
+\begin{table}[ht]
+\label{tab:chptr4:efd}
+\centering
+\begin{tabular}{l|l|l}
+\hline
+model & edf & gcv\\
+\hline
+crw1 & 27.258 & 0.54106\\
+\hline
+harm & 21.848 & 0.54009\\
+\hline
+factor & 52 & 0.54478\\
+\hline
+rrcrw1 & 25.589 & 0.54004\\
+\hline
+rrharm & 50.948 & 0.54308\\
+\hline
+rrharm100 & 21.854 & 0.54009\\
+\hline
+\end{tabular}
+\end{table}
+% -------------------------------------------------------------------------
+
+
+
+% -------------------------------------------------------------------------
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{smoothChoice}
+\caption{Monthly fits}
+\label{fig:chptr4:smoothchoice}
+\end{figure}
+% -------------------------------------------------------------------------
+
+
+% -------------------------------------------------------------------------
+
+
+
+\subsubsection{Model fitting}
 
 The coefficients $\bm{\gamma}_a$ and $\bm{\gamma}_b$ are then estimated using penalised least squares where the penalties are included as 
 \begin{equation}
@@ -395,33 +494,6 @@ To estimate the parameters of the model for a given set of smoothing parameters,
 \begin{equation}
   l^p(\bm{\gamma}_a, \bm{\gamma}_a, \bm{\beta}) = 
 \end{equation}
-
-% -------------------------------------------------------------------------
-% -------------------------------------------------------------------------
-
-
-
-\subsection{Improving computational efficiency}
-
-
-Both these models require a parameter vector $\bm{\gamma}_a$ with 365 elements - a parameter for each day - which would be penalised by a 365x365 matrix.  For this moderate sized problem, the dimension of the smoothing matrix makes for slow computation.  In order to speed up the fitting process a reduced rank smoother (chapter 2) can be used.  
-
-Reduced rank smoothers provide a means to reduce the number of parameters in a model by reducing the maximum model space.  However, the process involves computing the eigen decomposition of the penalty matrix, which again comes with computational cost.  There is a short cut by noticing the form of the new bases induced by diagonalising the penalty matrix.  Recall from chapter 2, that the \textit{best} parameterisation of a smoother could be achieved by transforming the parameter space so that the smoothing matrix was diagonal.  Wood (2006) called this the \textit{natural parameterisation} for a smoother, and it is appealing becuase the new basis functions contribute independently to the complexity of the fit.  With a diagonal penalty matrix, the smoothing problem becomes almost a ridge regression.
-
-Consider the GMRF smoother for a discrete time process composed of n time points. The basis functions for this model are coded by the identity matrix, each point in the process has a single basis vector, much like the basis vectors $(i, j, k)$ for points in euclidean 3 dimensional space. Following the procedure for reduced rank smoothers, the penalty $g'Qg$ can be written $g'U'DUg$, by replacing $Q$ with its eigen decomposotion, so a transformed model with diagonal penalty matrix $D$ is
-\begin{equation}
-  y = Ug + e
-\end{equation}
-where $U$ defines the new basis functions.  The form of these basis functions is very insightful and are given in Figure \ref{fig:chptr4:eigenBasis} for four GMRF smoothers (1st order random walk, 1st order cyclic random walk, 2nd order random walk and the harmonic occilator random walk).
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{eigendecomp-1}
-\caption{The first three basis functions of four GMRF models transformed to thier \textit{natural parameterisation}}
-\label{fig:chptr4:eigenBasis}
-\end{figure}
-
-Notice that the basis function of the RW1, CRW1 sine and cosine functions, hence the reduced rank RW1 GMRF model is intimately related to penalised splines based on fourier basis functions. In fact, the RW1 model results in the discrete cosine transformation, while the CRW1 model results in the discrete sine transformation with an extra $\cos(0)$ as the first basis. A further point is to note that the harmonic basis functions are identical to the CRW1 apart form of the 1st basis function, The harmonic basis functions are $\cos(1), \sin(1), \sin(2), \ldots$.
 
 For computational efficiency, rather then specify a full rank GMRF and reduce dimension, I simply use 52 fourier basis functions directly.  I choose 52 to allow for a maximum of weekly level variability, while still keeping the size of the model to a manageable size.  This choice of basis resonates well with the Moore et al. (2005) model which can be thought of as an unpenalised spline using the first 3 fourier basis functions. Because I am expressly seeking to model a sinusoidal function I use the harmonic penalty in conjunction with the fourier bases. \cmnote{Show a fit to the daily mean data.}
 
